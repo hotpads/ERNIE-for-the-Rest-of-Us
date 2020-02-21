@@ -17,7 +17,7 @@ pip install ernie4us
 Checkout the [ERNIE4us_demo.ipynb](ERNIE4us_demo.ipynb) jupyter notebook on how
 to load and use the converted model using tensorflow API.
 
-## Convert the ERNIE model yourself
+## Extracting the ERNIE model yourself
 
 First download a pre-trained ERNIE 2.0 model in paddle format. The avialable variations and download location
 can be found at [ERNIE's github project](https://github.com/PaddlePaddle/ERNIE#pre-trained-models--datasets).
@@ -42,12 +42,22 @@ total 2621456
 drwxr-xr-x  5 user_x  staff   160B Feb 20 16:36 paddle
 ERNIE_Large_en_stable-2.0.0 parameters are exported to ./model_artifacts/ERNIE_Large_en_stable-2.0.0
 ```
-Please note that the conversion script will install a specific version of tensorflow and thus overriding any
+Please note that the extraction script will install a specific version of tensorflow and thus overriding any
 current tensorflow version. It is adviced that one sets up a specific virtual environment for this work.
 
 After that, one can run the [ERNIE4us_verification.ipynb](ERNIE4us_verification.ipynb) Jupyter note book to verify
 the corresponding ERNIE model recreated in tensorflow produces the same hidden features as the the orginal Paddle
 implementation.
+
+To use the extracted parameters in the model, put the artifact files in a subfolder named by the model name under the
+path that you would be using in the `ernie4s.load_ernie_model` method, e.g.:
+```python
+import ernie4us
+# Extracted ERNIE artifacts in /user/local/lib/ernie4us/ERNIE_Large_en_stable-2.0.0/
+input_builder, ernie_tf_inputs, ernie_tf_outputs = ernie4us.load_ernie_model(
+  model_name='ERNIE_Large_en_stable-2.0.0', 
+  model_path='/user/local/lib/ernie4us')
+```
 
 # References and Credits
 
