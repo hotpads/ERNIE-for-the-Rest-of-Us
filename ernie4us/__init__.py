@@ -27,7 +27,7 @@ from . import modeling
 
 _logger = logging.getLogger(__name__)
 
-ERNIE4US_VERSION = '0.90'
+ERNIE4US_VERSION = '0.1.0'
 
 # model variants
 ERNIE_BASE_EN = 'ERNIE_Base_en_stable-2.0.0'
@@ -49,7 +49,7 @@ class Ernie2Output:
     classification_features: Union[tf.Tensor, np.array]
 
 
-DEFAULT_MODEL_BINARY_REPO_URL_ = 'https://github.com/winston-zillow/dummy_sandbox/releases/download/%s/' \
+DEFAULT_MODEL_BINARY_REPO_URL_ = 'https://github.com/hotpads/ERNIE-for-the-Rest-of-Us/releases/download/%s/' \
                                  % ERNIE4US_VERSION
 
 

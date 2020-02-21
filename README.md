@@ -4,7 +4,7 @@ The [ERNIE](https://github.com/PaddlePaddle/ERNIE) model is a pre-trained model 
 from Baidu. ERNIE 2.0 claimed [the top GLUE score](http://research.baidu.com/Blog/index-view?id=128) as of
 December 11, 2019. However, ERNIE is implemented in Baidu's [Paddle deep learning framework](https://github.com/PaddlePaddle/Paddle)
 whereas the rest of us typically use more popular framework, e.g. Tensorflow. This project provides an accessible 
-package to recreate the ERNIE model in tensorflow initialized with the original ERNIE=trained weights.
+package to recreate the ERNIE model in tensorflow initialized with the original ERNIE-trained weights.
 
 # Installation and Usages
 
