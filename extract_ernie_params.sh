@@ -47,7 +47,7 @@ fi
 
 pip3 install -r extractor-requirements.txt
 
-python3 ernie4us/extract_ernie_params.py --ernie_path=./model_artifacts/$ERNIE_MODEL_NAME
+python3 ./extract_ernie_params.py --ernie_path=./model_artifacts/$ERNIE_MODEL_NAME
 
 echo "copying artifacts..."
 mkdir -p $DUMP_PATH
