@@ -1,0 +1,4 @@
+[submodule "third_party/ERNIE"]
+	path = third_party/ERNIE
+	url = https://github.com/PaddlePaddle/ERNIE.git
+	branch = release/r2.1.0

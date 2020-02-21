@@ -1,0 +1,10 @@
+model_artifacts
+.ipynb_checkpoints
+.idea
+__pycache__
+.DS_Store
+*.iml
+dist
+build
+ernie4us.egg-info
+
