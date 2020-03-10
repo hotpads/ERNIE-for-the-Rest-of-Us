@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='ernie4us',
-    version='0.1.0',
+    version='0.1.5',
     description="Tensorflow accessible helper for Baidu's ERNIE NLP model",
     long_description=long_description,
     long_description_content_type="text/markdown",

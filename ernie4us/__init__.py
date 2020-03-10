@@ -27,7 +27,9 @@ from . import modeling
 
 _logger = logging.getLogger(__name__)
 
-ERNIE4US_VERSION = '0.1.0'
+# Note: we don't necessary have new model artifacts for every version
+# as the newer version may only have slight API changes
+DEFAULT_MODEL_BINARY_REPO_URL_ = 'https://github.com/hotpads/ERNIE-for-the-Rest-of-Us/releases/download/0.1.0/'
 
 # model variants
 ERNIE_BASE_EN = 'ERNIE_Base_en_stable-2.0.0'
@@ -47,10 +49,6 @@ class Ernie2Input:
 class Ernie2Output:
     sequence_features: Union[tf.Tensor, np.array]
     classification_features: Union[tf.Tensor, np.array]
-
-
-DEFAULT_MODEL_BINARY_REPO_URL_ = 'https://github.com/hotpads/ERNIE-for-the-Rest-of-Us/releases/download/%s/' \
-                                 % ERNIE4US_VERSION
 
 
 def _download_file(url, destination_path):
@@ -183,16 +181,23 @@ def create_ernie_model(model_name,
                        ernie_vocab_path,
                        ernie_param_path,
                        max_seq_len, do_lower_case=True):
-    ernie_config = modeling.ErnieConfig.from_json_file(ernie_config_path)
-    if model_name == ERNIE_LARGE_EN:
-        ernie_config.intermediate_size = 4096
     src_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='src_ids')
     segment_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='sent_ids')
     input_mask = tf.placeholder(tf.int32, (None, max_seq_len), name='input_mask')
     task_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='task_ids')
-    # these two are not used by the original BERT code, but have it to be compatible with ERNIE inputs
+    # this not used by the original BERT code, but have it to be compatible with ERNIE inputs
     pos_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='pos_ids')
 
+    return create_model_with_input_tensors(model_name, ernie_config_path, ernie_param_path, ernie_vocab_path, src_ids,
+                                           segment_ids, pos_ids, task_ids, input_mask, max_seq_len, do_lower_case)
+
+
+def create_model_with_input_tensors(model_name, ernie_config_path, ernie_param_path, ernie_vocab_path, src_ids,
+                                    segment_ids, pos_ids, task_ids, input_mask, max_seq_len,
+                                    do_lower_case=True):
+    ernie_config = modeling.ErnieConfig.from_json_file(ernie_config_path)
+    if model_name == ERNIE_LARGE_EN:
+        ernie_config.intermediate_size = 4096
     with open(ernie_param_path, 'rb') as f:
         ernie_params = pickle.load(f)
     model = modeling.ErnieModel(
@@ -207,11 +212,10 @@ def create_ernie_model(model_name,
     ernie_tf_inputs = Ernie2Input(src_ids, segment_ids, pos_ids, task_ids, input_mask)
     ernie_tf_outputs = Ernie2Output(model.get_sequence_output(), model.get_pooled_output())
     input_builder = Ernie2InputBuilder(ernie_vocab_path, do_lower_case=do_lower_case, max_seq_len=max_seq_len)
-
     return input_builder, ernie_tf_inputs, ernie_tf_outputs
 
 
-def load_ernie_model(model_name, model_path, max_seq_len=512, do_lower_case=True,
+def load_ernie_model(model_name, model_path, max_seq_len=200, do_lower_case=True,
                      model_binary_repository_url=None):
     ernie_tf_checkpoint_path, config_path, vocab_path, param_path = download_model_files(model_name, model_path,
         model_binary_repository_url=model_binary_repository_url)
