@@ -36,19 +36,33 @@ ERNIE_BASE_EN = 'ERNIE_Base_en_stable-2.0.0'
 ERNIE_LARGE_EN = 'ERNIE_Large_en_stable-2.0.0'
 
 
+def _dataclass_top_level_as_tuple(dataclass_instance):
+    """
+    `dataclasses.astuple()` does recursive traversal and would cause error converting fields of type tf.Tensor.
+    This method converts a dataclass instance to tuple by `getattr` over the fields.
+    """
+    import dataclasses
+    return tuple(getattr(dataclass_instance, field.name) for field in dataclasses.fields(dataclass_instance))
+
+
 @dataclass
 class Ernie2Input:
     token_ids: Union[tf.Tensor, np.array]
     sentence_ids: Union[tf.Tensor, np.array]
-    position_ids: Union[tf.Tensor, np.array]
     task_ids: Union[tf.Tensor, np.array]
     input_mask: Union[tf.Tensor, np.array]
+
+    def as_tuple(self):
+        return _dataclass_top_level_as_tuple(self)
 
 
 @dataclass
 class Ernie2Output:
     sequence_features: Union[tf.Tensor, np.array]
     classification_features: Union[tf.Tensor, np.array]
+
+    def as_tuple(self):
+        return _dataclass_top_level_as_tuple(self)
 
 
 def _download_file(url, destination_path):
@@ -84,23 +98,6 @@ def download_model_files(model_name, path, model_binary_repository_url=None):
     for file_path in [config_path, param_path, vocab_path]:
         _download_file(model_binary_repository_url + os.path.basename(file_path), file_path)
     return path, config_path, vocab_path, param_path
-
-
-def get_is_training_tensors(is_training_tensor_name='is_training'):
-    with tf.name_scope(""):
-        try:
-            tf_is_training = tf.get_default_graph().get_tensor_by_name('%s:0' % is_training_tensor_name)
-            tf_is_training_float = tf.get_default_graph().get_tensor_by_name('%s_float:0' % is_training_tensor_name)
-            return tf_is_training, tf_is_training_float
-        except KeyError:
-            tf_is_training = tf.placeholder_with_default(np.array(False), tuple(), name=is_training_tensor_name)
-            tf_is_training_float = tf.cast(tf_is_training, tf.float32, name='%s_float' % is_training_tensor_name)
-            return tf_is_training, tf_is_training_float
-
-
-def get_dropout_rate_tensor(dropout_rate, is_training_tensor_name='is_training'):
-    _, tf_is_training_float = get_is_training_tensors(is_training_tensor_name)
-    return tf.multiply(tf_is_training_float, dropout_rate)
 
 
 class Ernie2InputBuilder:
@@ -163,56 +160,38 @@ class Ernie2InputBuilder:
             sentence_ids.append(i)
 
         token_ids = self.pad_input_seq(self.tokenizer.convert_tokens_to_ids(tokens), self.pad_id, dtype=np.int64)
-        position_ids = self.pad_input_seq(list(range(len(tokens))), self.pad_id, dtype=np.int64)
         sentence_ids = self.pad_input_seq(sentence_ids, self.pad_id, dtype=np.int64)
         input_mask = self.pad_input_seq([1] * len(tokens), 0, np.float32)
         task_ids = np.full_like(token_ids, task_id)
 
         token_ids = np.reshape(token_ids, (1, -1))
         sentence_ids = np.reshape(sentence_ids, (1, -1))
-        position_ids = np.reshape(position_ids, (1, -1))
         input_mask = np.reshape(input_mask, (1, -1))
         task_ids = np.reshape(task_ids, (1, -1))
-        return Ernie2Input(token_ids, sentence_ids, position_ids, task_ids, input_mask)
+        return Ernie2Input(token_ids, sentence_ids, task_ids, input_mask)
 
 
 def create_ernie_model(model_name,
                        ernie_config_path,
                        ernie_vocab_path,
                        ernie_param_path,
-                       max_seq_len, do_lower_case=True):
-    src_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='src_ids')
-    segment_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='sent_ids')
-    input_mask = tf.placeholder(tf.int32, (None, max_seq_len), name='input_mask')
-    task_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='task_ids')
-    # this not used by the original BERT code, but have it to be compatible with ERNIE inputs
-    pos_ids = tf.placeholder(tf.int32, (None, max_seq_len), name='pos_ids')
-
-    return create_model_with_input_tensors(model_name, ernie_config_path, ernie_param_path, ernie_vocab_path, src_ids,
-                                           segment_ids, pos_ids, task_ids, input_mask, max_seq_len, do_lower_case)
-
-
-def create_model_with_input_tensors(model_name, ernie_config_path, ernie_param_path, ernie_vocab_path, src_ids,
-                                    segment_ids, pos_ids, task_ids, input_mask, max_seq_len,
-                                    do_lower_case=True):
+                       max_seq_len,
+                       do_lower_case=True):
     ernie_config = modeling.ErnieConfig.from_json_file(ernie_config_path)
     if model_name == ERNIE_LARGE_EN:
         ernie_config.intermediate_size = 4096
     with open(ernie_param_path, 'rb') as f:
         ernie_params = pickle.load(f)
     model = modeling.ErnieModel(
+        max_seq_length=max_seq_len,
         config=ernie_config,
-        input_ids=src_ids,
-        input_mask=input_mask,
-        token_type_ids=segment_ids,
-        task_type_ids=task_ids,
         ernie_params=ernie_params,
         use_one_hot_embeddings=False)
+    for key in ernie_params.keys():
+        _logger.error(f"found unexpected left-over ernie parameter {key}")
     assert len(ernie_params) == 0
-    ernie_tf_inputs = Ernie2Input(src_ids, segment_ids, pos_ids, task_ids, input_mask)
-    ernie_tf_outputs = Ernie2Output(model.get_sequence_output(), model.get_pooled_output())
     input_builder = Ernie2InputBuilder(ernie_vocab_path, do_lower_case=do_lower_case, max_seq_len=max_seq_len)
-    return input_builder, ernie_tf_inputs, ernie_tf_outputs
+    return input_builder, model
 
 
 def load_ernie_model(model_name, model_path, max_seq_len=200, do_lower_case=True,
