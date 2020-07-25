@@ -59,10 +59,15 @@ input_builder, ernie_tf_inputs, ernie_tf_outputs = ernie4us.load_ernie_model(
   model_path='/user/local/lib/ernie4us')
 ```
 
+# Tensorflow versions support
+
+Version 0.1.15 of this library supports tensorflow 1.15. Version 2.x works only with tensorflow 2.x.
+
+
 # References and Credits
 
 The modeling codes are adopted from the original [BERT](https://github.com/google-research/bert) 
-and modified to accept ERNIE parameters
+and modified to accept ERNIE parameters as well as migrating to tensorflow 2.0 / Keras.
 
 # License
 
